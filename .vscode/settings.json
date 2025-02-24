@@ -1,0 +1,10 @@
+{
+	"cmake.copyCompileCommands": "${workspaceFolder}/build/compile_commands.json",
+	"cmake.debugConfig": {
+		"cwd": "${workspaceFolder}"
+	},
+	"clangd.arguments": [
+		"--compile-commands-dir=${workspaceFolder}/build/",
+		"--header-insertion=never"
+	]
+}
