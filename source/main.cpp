@@ -1,4 +1,5 @@
 #include <CLI/CLI.hpp>
+#include <BS_thread_pool.hpp>
 
 #include "Util.hpp"
 #include "Decrypter.hpp"
@@ -22,6 +23,7 @@ struct DecrypterCli : public Decrypter
 			PROGRAM_DIR,
 			PROGRAM_DIR / ".."sv
 		}
+		, synced_cout{}
 	{
 		app->add_option("input"s, input)
 			->description("input file or directory, if not specified, default search paths are used"s)
@@ -60,6 +62,7 @@ struct DecrypterCli : public Decrypter
 
 		auto output_file = output / file.filename();
 		std::ifstream ifs{ file, std::ios::binary | std::ios::in };
+		ifs.exceptions(std::ios::badbit | std::ios::failbit);
 
 		ByteArray data;
 		ifs >> data;
@@ -73,9 +76,11 @@ struct DecrypterCli : public Decrypter
 
 	PathArray input;
 	std::filesystem::path output;
-	int jobs;
+	std::size_t jobs;
 	std::string suffix;
 	bool quiet;
+
+	BS::synced_stream synced_cout;
 
 	const std::filesystem::path PROGRAM_DIR;
 	const std::filesystem::path SEARCH_PATHS[3];
@@ -141,26 +146,65 @@ struct DecrypterCli : public Decrypter
 	void print(std::format_string<Args...> fmt, Args&& ...args)
 	{
 		if (!quiet)
-			util::print(std::cout, fmt, std::forward<Args>(args)...);
+			synced_cout.print( std::format(fmt, std::forward<Args>(args)...));
 	}
 
 	void execute();
 };
 
-
 void DecrypterCli::execute()
 {
+	struct DecryptFailure
+	{
+		std::filesystem::path file;
+		std::string msg;
+	};
+
 	if (!std::filesystem::exists(output))
 		std::filesystem::create_directory(output);
 
-	PathSet input_files = get_input_files(input);
-	for (auto& file : input_files)
+	PathSet input_files_ = get_input_files(input);
+	PathArray input_files{ input_files_.begin(), input_files_.end() };
+	// for (auto& file : input_files)
+	// {
+	// 	decrpyt_file(file);
+	// }
+	auto task_handler = [this, &input_files](std::size_t start, std::size_t end) {
+		std::vector<DecryptFailure> failures;
+		for (std::size_t i = start; i < end; ++i)
+		{
+			const auto& file = input_files[i];
+			try
+			{
+				decrpyt_file(file);
+			}
+			catch (const std::exception& e)
+			{
+				failures.emplace_back(file, e.what());
+			}
+		}
+		return failures;
+	};
+
+	BS::thread_pool pool{ jobs * 2 };
+	auto future = pool.submit_blocks(
+		0, input_files.size(),
+		task_handler,
+		jobs
+	);
+
+	std::size_t failed = 0;
+	for (auto& failures : future.get())
 	{
-		decrpyt_file(file);
+		for (auto& [file, err] : failures)
+		{
+			util::print(std::cerr, "Decryption failed: {}: {}\n", file.generic_string(), err);
+		}
+		failed += failures.size();
 	}
+
+	print("Completed: {}/{} success.", input_files.size() - failed, input_files.size());
 }
-
-
 
 int main(int argc, char* argv[])
 {
