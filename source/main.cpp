@@ -163,12 +163,12 @@ void DecrypterCli::execute()
 	if (!std::filesystem::exists(output))
 		std::filesystem::create_directory(output);
 
-	PathSet input_files_ = get_input_files(input);
-	PathArray input_files{ input_files_.begin(), input_files_.end() };
-	// for (auto& file : input_files)
-	// {
-	// 	decrpyt_file(file);
-	// }
+	PathSet&& files_set = get_input_files(input);
+	PathArray input_files{
+		std::make_move_iterator(files_set.begin()),
+		std::make_move_iterator(files_set.end())
+	};
+
 	auto task_handler = [this, &input_files](std::size_t start, std::size_t end) {
 		std::vector<DecryptFailure> failures;
 		for (std::size_t i = start; i < end; ++i)
