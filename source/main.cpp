@@ -99,47 +99,48 @@ struct DecrypterCli : public Decrypter
 		throw std::runtime_error{ "No valid asset bundle folder found in default search path, please specify input" };
 	};
 
-	PathSet get_input_files(const PathArray& input)
+	PathArray collect_files(const PathArray& input)
 	{
-		PathSet ret;
-		auto extension_match = std::format(".{}", suffix);
+		namespace fs = std::filesystem;
+		const std::string extension_match{ std::format(".{}", suffix) };
 
-		if (input.empty())
-		{
-			auto iter = std::filesystem::directory_iterator{
-				get_default_path(),
-				std::filesystem::directory_options::skip_permission_denied
+		const auto add_bundles = [&extension_match](PathSet& set, const fs::path& dir) {
+			fs::directory_iterator iter = fs::directory_iterator{
+				dir, fs::directory_options::skip_permission_denied
 			};
-			for (auto& f : iter)
+			for (auto& entry : iter)
 			{
-				auto path = f.path();
+				if (!entry.is_regular_file())
+					continue;
+
+				auto path = entry.path();
 				if (path.extension().string() != extension_match)
 					continue;
-				ret.emplace(std::move(path));
+				set.emplace(std::move(path));
 			}
-		}
-		
+		};
+
+		PathSet set;
+		if (input.empty())
+			add_bundles(set, get_default_path());
+
 		for (auto& path : input)
 		{
 			if (std::filesystem::is_regular_file(path))
 			{
-				ret.emplace(path);
+				set.emplace(path);
 				continue;
 			}
 			if (!std::filesystem::is_directory(path))
 				continue;
-			auto iter = std::filesystem::directory_iterator{
-				path, std::filesystem::directory_options::skip_permission_denied
-			};
-			for (auto& f : iter)
-			{
-				auto path = f.path();
-				if (path.extension().string() != extension_match)
-					continue;
-				ret.emplace(std::move(path));
-			}
+	
+			add_bundles(set, path);
 		}
-		return ret;
+
+		return PathArray{
+			std::make_move_iterator(set.begin()),
+			std::make_move_iterator(set.end())
+		};
 	}
 
 	template<typename ...Args>
@@ -163,11 +164,7 @@ void DecrypterCli::execute()
 	if (!std::filesystem::exists(output))
 		std::filesystem::create_directory(output);
 
-	PathSet&& files_set = get_input_files(input);
-	PathArray input_files{
-		std::make_move_iterator(files_set.begin()),
-		std::make_move_iterator(files_set.end())
-	};
+	PathArray input_files = collect_files(input);
 
 	auto task_handler = [this, &input_files](std::size_t start, std::size_t end) {
 		std::vector<DecryptFailure> failures;
