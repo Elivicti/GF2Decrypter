@@ -13,15 +13,22 @@ using namespace std::string_view_literals;
 
 struct DecrypterCli : public Decrypter
 {
+	using PathArray = std::vector<std::filesystem::path>;
+	using PathSet   = std::set<std::filesystem::path>;
+
 	struct BundleFile
 	{
 		std::filesystem::path path;
 		int idx; // index in input std::vector, refer to the file's directory
 		         // -1 means no parent directory
+		
+		std::filesystem::path get_folder_structure(const PathArray& arr) const
+		{
+			if (idx < 0)
+				return path.filename();
+			return arr[idx].filename() / std::filesystem::relative(path, arr[idx]);
+		}
 	};
-
-	using PathArray = std::vector<std::filesystem::path>;
-	using PathSet   = std::set<std::filesystem::path>;
 	using BundleArray = std::vector<BundleFile>;
 	using BundleSet   = std::set<BundleFile>;
 
@@ -71,24 +78,17 @@ struct DecrypterCli : public Decrypter
 		});
 	}
 
-	void decrpyt_file(const std::filesystem::path& file, int idx)
+	void decrpyt_file(const BundleFile& bundle) const
 	{
 		namespace fs = std::filesystem;
+		auto& [file, idx] = bundle;
 		if (!fs::is_regular_file(file))
 			return;
 
-		fs::path output_file;
-		if (idx < 0)
-			output_file.assign(output / file.filename());
-		else
-		{
-			output_file.assign(
-				output / input[idx].filename() / fs::relative(file, input[idx])
-			);
+		fs::path output_file{ bundle.get_folder_structure(input) };
+		if (auto parent = output_file.parent_path(); idx >= 0 && !fs::exists(parent))
+			fs::create_directories(parent);
 
-			if (auto parent = output_file.parent_path(); !fs::exists(parent))
-				fs::create_directories(parent);
-		}
 		std::ifstream ifs{ file, std::ios::binary | std::ios::in };
 		ifs.exceptions(std::ios::badbit | std::ios::failbit);
 
@@ -109,7 +109,7 @@ struct DecrypterCli : public Decrypter
 	bool recursive;
 	bool quiet;
 
-	BS::synced_stream synced_cout;
+	mutable BS::synced_stream synced_cout;
 
 	const std::filesystem::path PROGRAM_DIR;
 	const std::filesystem::path SEARCH_PATHS[3];
@@ -190,7 +190,7 @@ struct DecrypterCli : public Decrypter
 	}
 
 	template<typename ...Args>
-	void print(std::format_string<Args...> fmt, Args&& ...args)
+	void print(std::format_string<Args...> fmt, Args&& ...args) const
 	{
 		if (!quiet)
 			synced_cout.print( std::format(fmt, std::forward<Args>(args)...));
@@ -235,14 +235,13 @@ void DecrypterCli::execute()
 		std::vector<DecryptFailure> failures;
 		for (std::size_t i = start; i < end; ++i)
 		{
-			const auto& [file, idx] = input_files[i];
 			try
 			{
-				decrpyt_file(file, idx);
+				decrpyt_file(input_files[i]);
 			}
 			catch (const std::exception& e)
 			{
-				failures.emplace_back(file, e.what());
+				failures.emplace_back(input_files[i].path, e.what());
 			}
 		}
 		return failures;
