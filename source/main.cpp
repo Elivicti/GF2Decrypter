@@ -26,22 +26,22 @@ struct DecrypterCli : public Decrypter
 		, synced_cout{}
 	{
 		app->add_option("input"s, input)
-			->description("input file or directory, if not specified, default search paths are used"s)
+			->description("Input file or directory, if not specified, default search paths are used"s)
 			->check(CLI::ExistingDirectory | CLI::ExistingFile)
 			->take_all();
 	
 		app->add_option("-o,--output"s, output)
-			->description("output directory"s)
+			->description("Output directory"s)
 			->check(CLI::ExistingDirectory | CLI::NonexistentPath)
 			->default_val(output.string());
 		app->add_option("-j,--jobs"s, jobs)
-			->description("number of jobs"s)
+			->description("Number of jobs"s)
 			->default_val(2);
 		app->add_option("-s,--suffix"s, suffix)
-			->description("suffix of asset bundle files, only works if input is a directory"s)
+			->description("Suffix of asset bundle files, only works if input is a directory"s)
 			->default_val(suffix);
 		app->add_flag("-q,--quiet"s, quiet)
-			->description("supress console output"s);
+			->description("Supress console output"s);
 
 
 		std::string footer{ "Default Search Paths:\n"s };
