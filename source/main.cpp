@@ -4,6 +4,8 @@
 #include "Util.hpp"
 #include "Decrypter.hpp"
 
+#include <unordered_set>
+
 // constexpr auto ENCRYPTION_KEY = "\x55\x6E\x69\x74\x79\x46\x53\x00\x00\x00\x00\x07\x35\x2E\x78\x2E";
 
 using namespace std::string_literals;
@@ -11,8 +13,17 @@ using namespace std::string_view_literals;
 
 struct DecrypterCli : public Decrypter
 {
+	struct BundleFile
+	{
+		std::filesystem::path path;
+		int idx; // index in input std::vector, refer to the file's directory
+		         // -1 means no parent directory
+	};
+
 	using PathArray = std::vector<std::filesystem::path>;
 	using PathSet   = std::set<std::filesystem::path>;
+	using BundleArray = std::vector<BundleFile>;
+	using BundleSet   = std::set<BundleFile>;
 
 	DecrypterCli(CLI::App* app, const char* argv0)
 		: input{}, output{ "output"sv }
@@ -52,15 +63,30 @@ struct DecrypterCli : public Decrypter
 		}
 		app->footer(footer);
 
-		app->callback([this]() { this->execute(); });
+		app->callback([this]() {
+			this->resolve_input();
+			this->execute();
+		});
 	}
 
-	void decrpyt_file(const std::filesystem::path& file)
+	void decrpyt_file(const std::filesystem::path& file, int idx)
 	{
-		if (!std::filesystem::is_regular_file(file))
+		namespace fs = std::filesystem;
+		if (!fs::is_regular_file(file))
 			return;
 
-		auto output_file = output / file.filename();
+		fs::path output_file;
+		if (idx < 0)
+			output_file.assign(output / file.filename());
+		else
+		{
+			output_file.assign(
+				output / input[idx].filename() / fs::relative(file, input[idx])
+			);
+
+			if (auto parent = output_file.parent_path(); !fs::exists(parent))
+				fs::create_directories(parent);
+		}
 		std::ifstream ifs{ file, std::ios::binary | std::ios::in };
 		ifs.exceptions(std::ios::badbit | std::ios::failbit);
 
@@ -99,12 +125,13 @@ struct DecrypterCli : public Decrypter
 		throw std::runtime_error{ "No valid asset bundle folder found in default search path, please specify input" };
 	};
 
-	PathArray collect_files(const PathArray& input)
+	BundleArray collect_files()
 	{
+		print("Collecting files...\n");
 		namespace fs = std::filesystem;
 		const std::string extension_match{ std::format(".{}", suffix) };
 
-		const auto add_bundles = [&extension_match](PathSet& set, const fs::path& dir) {
+		const auto add_bundles = [&extension_match](BundleArray& bundles, const fs::path& dir, int idx) {
 			fs::directory_iterator iter = fs::directory_iterator{
 				dir, fs::directory_options::skip_permission_denied
 			};
@@ -116,31 +143,34 @@ struct DecrypterCli : public Decrypter
 				auto path = entry.path();
 				if (path.extension().string() != extension_match)
 					continue;
-				set.emplace(std::move(path));
+				bundles.emplace_back(std::move(path), idx);
 			}
 		};
 
-		PathSet set;
+		BundleArray bundles;
 		if (input.empty())
-			add_bundles(set, get_default_path());
+		{
+			fs::path default_path = get_default_path();
+			add_bundles(bundles, default_path, 0);
+			input.emplace_back(std::move(default_path));
+		}
 
+		int idx = -1;
 		for (auto& path : input)
 		{
+			idx++;
 			if (std::filesystem::is_regular_file(path))
 			{
-				set.emplace(path);
+				bundles.emplace_back(path, -1);
 				continue;
 			}
 			if (!std::filesystem::is_directory(path))
 				continue;
 	
-			add_bundles(set, path);
+			add_bundles(bundles, path, idx);
 		}
 
-		return PathArray{
-			std::make_move_iterator(set.begin()),
-			std::make_move_iterator(set.end())
-		};
+		return bundles;
 	}
 
 	template<typename ...Args>
@@ -148,6 +178,25 @@ struct DecrypterCli : public Decrypter
 	{
 		if (!quiet)
 			synced_cout.print( std::format(fmt, std::forward<Args>(args)...));
+	}
+
+	// remove duplicates and resolve into absolute path
+	void resolve_input()
+	{
+		namespace fs = std::filesystem;
+		std::unordered_set<fs::path> seen;
+		for (auto it = input.begin(); it != input.end(); ++it)
+		{
+			auto& path = (*it = fs::canonical(*it));
+			if (!seen.contains(path))
+			{
+				seen.emplace(path);
+				continue;
+			}
+
+			if (it = input.erase(it); it == input.end())
+				break;
+		}
 	}
 
 	void execute();
@@ -162,18 +211,18 @@ void DecrypterCli::execute()
 	};
 
 	if (!std::filesystem::exists(output))
-		std::filesystem::create_directory(output);
+		std::filesystem::create_directories(output);
 
-	PathArray input_files = collect_files(input);
+	DecrypterCli::BundleArray input_files = collect_files();
 
 	auto task_handler = [this, &input_files](std::size_t start, std::size_t end) {
 		std::vector<DecryptFailure> failures;
 		for (std::size_t i = start; i < end; ++i)
 		{
-			const auto& file = input_files[i];
+			const auto& [file, idx] = input_files[i];
 			try
 			{
-				decrpyt_file(file);
+				decrpyt_file(file, idx);
 			}
 			catch (const std::exception& e)
 			{
