@@ -27,7 +27,7 @@ struct DecrypterCli : public Decrypter
 
 	DecrypterCli(CLI::App* app, const char* argv0)
 		: input{}, output{ "output"sv }
-		, jobs{ 2 }, suffix{ "bundle"s }, quiet{ false }
+		, jobs{ 2 }, suffix{ "bundle"s }, recursive{ false }, quiet{ false }
 		, PROGRAM_DIR{ std::filesystem::path{ argv0 }.parent_path() }
 		, SEARCH_PATHS{
 			std::filesystem::path{ "."sv },
@@ -51,6 +51,8 @@ struct DecrypterCli : public Decrypter
 		app->add_option("-s,--suffix"s, suffix)
 			->description("Suffix of asset bundle files, only works if input is a directory"s)
 			->default_val(suffix);
+		app->add_flag("-r,--recursive"s, recursive)
+			->description("Recursively search input directories"s);
 		app->add_flag("-q,--quiet"s, quiet)
 			->description("Supress console output"s);
 
@@ -104,6 +106,7 @@ struct DecrypterCli : public Decrypter
 	std::filesystem::path output;
 	std::size_t jobs;
 	std::string suffix;
+	bool recursive;
 	bool quiet;
 
 	BS::synced_stream synced_cout;
@@ -125,27 +128,40 @@ struct DecrypterCli : public Decrypter
 		throw std::runtime_error{ "No valid asset bundle folder found in default search path, please specify input" };
 	};
 
+	struct collect_bundle_helper
+	{
+		const std::string& extension_match;
+		bool recursive;
+
+		void operator()(BundleArray& bundles, const std::filesystem::path& dir, int idx) const
+		{
+			namespace fs = std::filesystem;
+			auto do_work = [this, &bundles, idx](auto directory_iterator) {
+				for (auto& entry : directory_iterator)
+				{
+					if (!entry.is_regular_file())
+						continue;
+	
+					auto path = entry.path();
+					if (path.extension().string() != extension_match)
+						continue;
+					bundles.emplace_back(std::move(path), idx);
+				}
+			};
+			if (this->recursive)
+				do_work(fs::recursive_directory_iterator{ dir });
+			else
+				do_work(fs::directory_iterator{ dir });
+		}
+	};
+
 	BundleArray collect_files()
 	{
 		print("Collecting files...\n");
 		namespace fs = std::filesystem;
 		const std::string extension_match{ std::format(".{}", suffix) };
 
-		const auto add_bundles = [&extension_match](BundleArray& bundles, const fs::path& dir, int idx) {
-			fs::directory_iterator iter = fs::directory_iterator{
-				dir, fs::directory_options::skip_permission_denied
-			};
-			for (auto& entry : iter)
-			{
-				if (!entry.is_regular_file())
-					continue;
-
-				auto path = entry.path();
-				if (path.extension().string() != extension_match)
-					continue;
-				bundles.emplace_back(std::move(path), idx);
-			}
-		};
+		const collect_bundle_helper add_bundles{ extension_match, recursive };
 
 		BundleArray bundles;
 		if (input.empty())
