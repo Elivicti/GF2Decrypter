@@ -34,7 +34,7 @@ struct DecrypterCli : public Decrypter
 
 	DecrypterCli(CLI::App* app, const char* argv0)
 		: input{}, output{ "output"sv }
-		, jobs{ 2 }, suffix{ "bundle"s }, recursive{ false }, quiet{ false }
+		, jobs{ 2 }, suffix{ "bundle"s }, recursive{ false }, quiet{ false }, dry_run{ false }
 		, PROGRAM_DIR{ std::filesystem::path{ argv0 }.parent_path() }
 		, SEARCH_PATHS{
 			std::filesystem::path{ "."sv },
@@ -62,6 +62,8 @@ struct DecrypterCli : public Decrypter
 			->description("Recursively search input directories"s);
 		app->add_flag("-q,--quiet"s, quiet)
 			->description("Supress console output"s);
+		app->add_flag("--dry-run"s, dry_run)
+			->description("Still read and decrpyt file, but won't write output"s);
 
 
 		std::string footer{ "Default Search Paths:\n"s };
@@ -86,7 +88,7 @@ struct DecrypterCli : public Decrypter
 			return;
 
 		fs::path output_file{ output / bundle.get_folder_structure(input) };
-		if (auto parent = output_file.parent_path(); idx >= 0 && !fs::exists(parent))
+		if (auto parent = output_file.parent_path(); !dry_run && idx >= 0 && !fs::exists(parent))
 			fs::create_directories(parent);
 
 		std::ifstream ifs{ file, std::ios::binary | std::ios::in };
@@ -96,8 +98,11 @@ struct DecrypterCli : public Decrypter
 		ifs >> data;
 
 		decrypt_bytes(data);
-		std::ofstream ofs{ output_file, std::ios::binary | std::ios::out };
-		ofs.write((char*)data.data(), data.size());
+		if (!dry_run)
+		{
+			std::ofstream ofs{ output_file, std::ios::binary | std::ios::out };
+			ofs.write((char*)data.data(), data.size());
+		}
 
 		print("{} -> {}\n", file.filename().string(), output_file.generic_string());
 	}
@@ -108,6 +113,7 @@ struct DecrypterCli : public Decrypter
 	std::string suffix;
 	bool recursive;
 	bool quiet;
+	bool dry_run;
 
 	mutable BS::synced_stream synced_cout;
 
@@ -226,7 +232,7 @@ void DecrypterCli::execute()
 		std::string msg;
 	};
 
-	if (!std::filesystem::exists(output))
+	if (!dry_run && !std::filesystem::exists(output))
 		std::filesystem::create_directories(output);
 
 	DecrypterCli::BundleArray input_files = collect_files();
