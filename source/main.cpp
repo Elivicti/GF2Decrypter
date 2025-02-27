@@ -85,7 +85,7 @@ struct DecrypterCli : public Decrypter
 		if (!fs::is_regular_file(file))
 			return;
 
-		fs::path output_file{ bundle.get_folder_structure(input) };
+		fs::path output_file{ output / bundle.get_folder_structure(input) };
 		if (auto parent = output_file.parent_path(); idx >= 0 && !fs::exists(parent))
 			fs::create_directories(parent);
 
