@@ -175,6 +175,7 @@ struct DecrypterCli : public Decrypter
 			fs::path default_path = get_default_path();
 			add_bundles(bundles, default_path, 0);
 			input.emplace_back(std::move(default_path));
+			return bundles;
 		}
 
 		int idx = -1;
