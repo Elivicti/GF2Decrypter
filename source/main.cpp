@@ -21,7 +21,7 @@ struct DecrypterCli : public Decrypter
 		std::filesystem::path path;
 		int idx; // index in input std::vector, refer to the file's directory
 		         // -1 means no parent directory
-		
+
 		std::filesystem::path get_folder_structure(const PathArray& arr) const
 		{
 			if (idx < 0)
@@ -47,7 +47,7 @@ struct DecrypterCli : public Decrypter
 			->description("Input file or directory, if not specified, default search paths are used"s)
 			->check(CLI::ExistingDirectory | CLI::ExistingFile)
 			->take_all();
-	
+
 		app->add_option("-o,--output"s, output)
 			->description("Output directory"s)
 			->check(CLI::ExistingDirectory | CLI::NonexistentPath)
@@ -119,12 +119,12 @@ struct DecrypterCli : public Decrypter
 
 	const std::filesystem::path PROGRAM_DIR;
 	const std::filesystem::path SEARCH_PATHS[3];
-	static constexpr auto FOLDER_NAME = "AssetBundles_Windows"sv;	
+	static constexpr auto FOLDER_NAME = "AssetBundles_Windows"sv;
 
 	std::filesystem::path get_default_path()
 	{
 		using namespace std::string_view_literals;
-	
+
 		for (auto& search : SEARCH_PATHS)
 		{
 			auto p = search / FOLDER_NAME;
@@ -147,7 +147,7 @@ struct DecrypterCli : public Decrypter
 				{
 					if (!entry.is_regular_file())
 						continue;
-	
+
 					auto path = entry.path();
 					if (path.extension().string() != extension_match)
 						continue;
@@ -189,7 +189,7 @@ struct DecrypterCli : public Decrypter
 			}
 			if (!std::filesystem::is_directory(path))
 				continue;
-	
+
 			add_bundles(bundles, path, idx);
 		}
 
@@ -278,7 +278,7 @@ int main(int argc, char* argv[])
 {
 	CLI::App app{ "Decrypt asset bundle from Girl's Frontline 2: Exilum" };
 	DecrypterCli decrypter{ &app, argv[0] };
-	
+
 	try
 	{
 		app.parse(argc, argv);
