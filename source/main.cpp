@@ -48,6 +48,9 @@ struct DecrypterCli : public Decrypter
 			->check(CLI::ExistingDirectory | CLI::ExistingFile)
 			->take_all();
 
+		app->add_flag("-v,--version", version)
+			->description("Print version");
+
 		app->add_option("-o,--output"s, output)
 			->description("Output directory"s)
 			->check(CLI::ExistingDirectory | CLI::NonexistentPath)
@@ -74,7 +77,14 @@ struct DecrypterCli : public Decrypter
 		}
 		app->footer(footer);
 
-		app->callback([this]() {
+		app->callback([this, app]() {
+			if (version)
+			{
+				quiet = false;
+				this->print("{} {} (commit: {})\n", EXE_NAME, PROJECT_VERSION, GIT_HASH);
+				return;
+			}
+
 			this->resolve_input();
 			this->execute();
 		});
@@ -114,6 +124,7 @@ struct DecrypterCli : public Decrypter
 	bool recursive;
 	bool quiet;
 	bool dry_run;
+	bool version;
 
 	mutable BS::synced_stream synced_cout;
 
