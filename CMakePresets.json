@@ -22,7 +22,8 @@
 			"hidden": true,
 			"cacheVariables": {
 				"CMAKE_C_COMPILER": "cl.exe",
-				"CMAKE_CXX_COMPILER": "cl.exe"
+				"CMAKE_CXX_COMPILER": "cl.exe",
+				"CMAKE_LINKER": "link.exe"
 			}
 		},
 		{
@@ -46,8 +47,7 @@
 			"name": "sys-windows",
 			"hidden": true,
 			"cacheVariables": {
-				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                "#Qt6_DIR": "$env{Qt6}/msvc2019_64/lib/cmake/Qt6"
+				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
 			},
 			"condition": {
 				"type": "equals",
