@@ -6,12 +6,11 @@
 #include <vector>
 #include <ranges>
 
-
 class ByteArray : public std::vector<std::byte>
 {
 #define DECLARE_TAG(name) \
 	private: struct name##_tag{};  \
-	public:  constexpr static name##_tag name
+	public:  constexpr static name##_tag name{}
 
 	DECLARE_TAG(xor_new_array);
 	DECLARE_TAG(xor_inplace);
@@ -32,31 +31,52 @@ public:
 	}
 	using std::vector<std::byte>::vector;
 
-	constexpr ByteArray  xor_encrpyt(const ByteArray& key, xor_new_array_tag tag = xor_new_array) const;
-	constexpr ByteArray& xor_encrpyt(const ByteArray& key, xor_inplace_tag tag);
+	constexpr ByteArray  xor_encrpyt(const ByteArray& key, xor_new_array_tag tag = xor_new_array) const
+	{
+		ByteArray ret = *this;
+		ret.xor_encrpyt(key, xor_inplace);
+		return ret;
+	}
+	constexpr ByteArray& xor_encrpyt(const ByteArray& key, xor_inplace_tag tag)
+	{
+		std::size_t key_size = key.size();
+		auto key_view = std::views::iota((std::size_t)0, key_size)
+			| std::views::transform([key_size, &key](size_t i) {
+				return key[i % key_size];
+			});
 
-	constexpr ByteArray  xor_decrpyt(const ByteArray& key, xor_new_array_tag tag = xor_new_array) const;
-	constexpr ByteArray& xor_decrpyt(const ByteArray& key, xor_inplace_tag tag);
+		std::ranges::transform(
+			*this, key_view,
+			this->begin(),
+			std::bit_xor<std::byte>{}
+		);
+		return *this;
+	}
+
+	constexpr ByteArray  xor_decrypt(const ByteArray& key, xor_new_array_tag tag = xor_new_array) const
+	{ return xor_encrpyt(key, tag); }
+	constexpr ByteArray& xor_decrypt(const ByteArray& key, xor_inplace_tag tag)
+	{ return xor_encrpyt(key, tag); }
 
 	template<typename CharT>
 		requires (sizeof(CharT) == sizeof(std::byte))
 	constexpr static ByteArray from_bytes(std::basic_string_view<CharT> bytes)
 	{
-		const std::byte* ptr = reinterpret_cast<const std::byte*>(bytes.data());
+		const std::byte* ptr = std::bit_cast<const std::byte*>(bytes.data());
 		return { ptr, ptr + bytes.size() };
 	}
 	template<typename CharT, std::size_t N>
 		requires (sizeof(CharT) == sizeof(std::byte))
 	constexpr static ByteArray from_bytes(const CharT(& bytes)[N])
 	{
-		const std::byte* ptr = reinterpret_cast<const std::byte*>(bytes);
+		const std::byte* ptr = std::bit_cast<const std::byte*>(bytes);
 		return { ptr, ptr + N - 1 };
 	}
 
 	template<std::integral IntT>
 	constexpr static ByteArray from_integer(IntT integer)
 	{
-		const std::byte* byte_ptr = reinterpret_cast<const std::byte*>(&integer);
+		const std::byte* byte_ptr = std::bit_cast<const std::byte*>(&integer);
 		return { byte_ptr, byte_ptr + sizeof(integer) };
 	}
 
@@ -87,7 +107,7 @@ public:
 		requires std::is_trivially_copyable_v<T>
 	constexpr static ByteArray from_trivially_copyable(const T& value)
 	{
-		const std::byte* byte_ptr = reinterpret_cast<const std::byte*>(&value);
+		const std::byte* byte_ptr = std::bit_cast<const std::byte*>(&value);
 		return { byte_ptr, byte_ptr + sizeof(T) };
 	}
 
@@ -198,10 +218,41 @@ inline std::ifstream& operator>>(std::ifstream& ifs, ByteArray& arr)
 	return ifs;
 }
 
-constexpr ByteArray operator""_hex(const char* str, std::size_t len);
-constexpr ByteArray operator""_bytes(const char* str, std::size_t len);
+static constexpr bool is_hex_str(const char* str, std::size_t len)
+{
+	constexpr auto is_hex_char = [](char ch) {
+		return ('0' <= ch && ch <= '9') || ('a' <= ch && ch <= 'f') || ('A' <= ch && ch <= 'F');
+	};
+	return std::all_of(str, str + len, is_hex_char);
+}
+
+constexpr ByteArray operator""_hex(const char* str, std::size_t len)
+{
+	if (!is_hex_str(str, len) || (len & 1) == 1)
+		throw std::invalid_argument("invalid hex string");
+
+	constexpr auto hex_char_to_value = [](char c) {
+		c = std::tolower(static_cast<unsigned char>(c));
+		if (c >= '0' && c <= '9')
+			return (std::byte)(c - '0');
+		else if (c >= 'a' && c <= 'f')
+			return (std::byte)(10 + c - 'a');
+		else
+			throw std::invalid_argument("invalid hex character");
+	};
+	ByteArray result;
+	result.reserve(len / 2);
+
+	for (size_t i = 0; i < len; i += 2)
+	{
+		std::byte high = hex_char_to_value(str[i]);
+		std::byte low  = hex_char_to_value(str[i + 1]);
+		result.push_back((high << 4) | low);
+	}
+	return result;
+}
 inline constexpr ByteArray operator""_bytes(const char* str, std::size_t len)
 {
-	const std::byte* ptr = (const std::byte*)str;
+	const std::byte* ptr = std::bit_cast<const std::byte*>(str);
 	return ByteArray{ ptr, ptr + len };
 }
