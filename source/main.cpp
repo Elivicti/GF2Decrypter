@@ -282,7 +282,7 @@ void DecrypterCli::execute()
 		failed += failures.size();
 	}
 
-	print("Completed: {}/{} success.", input_files.size() - failed, input_files.size());
+	print("Completed: {}/{} success.\n", input_files.size() - failed, input_files.size());
 }
 
 int main(int argc, char* argv[])
