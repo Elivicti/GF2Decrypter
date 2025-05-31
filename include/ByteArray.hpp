@@ -31,32 +31,45 @@ public:
 	}
 	using std::vector<std::byte>::vector;
 
-	constexpr ByteArray  xor_encrpyt(const ByteArray& key, xor_new_array_tag tag = xor_new_array) const
+	constexpr ByteArray  xor_encrpyt(const ByteArray& key, xor_new_array_tag tag = {}) const
+	{ return xor_encrpyt(key, this->size(), tag); }
+	constexpr ByteArray  xor_encrpyt(const ByteArray& key, std::size_t n, xor_new_array_tag tag = {}) const
 	{
 		ByteArray ret = *this;
-		ret.xor_encrpyt(key, xor_inplace);
+		ret.xor_encrpyt(key, n, xor_inplace);
 		return ret;
 	}
 	constexpr ByteArray& xor_encrpyt(const ByteArray& key, xor_inplace_tag tag)
+	{ return xor_encrpyt(key, this->size(), tag); }
+	constexpr ByteArray& xor_encrpyt(const ByteArray& key, std::size_t n, xor_inplace_tag)
 	{
-		std::size_t key_size = key.size();
-		auto key_view = std::views::iota((std::size_t)0, key_size)
-			| std::views::transform([key_size, &key](size_t i) {
-				return key[i % key_size];
+		std::size_t key_len = key.size();
+		if (key_len == 0 || n == 0)
+			return *this;
+
+		n = std::min<std::size_t>(n, this->size());
+		auto key_view = std::views::iota((std::size_t)0, n)
+			| std::views::transform([key_len, &key](size_t i) {
+				return key[i % key_len];
 			});
 
 		std::ranges::transform(
-			*this, key_view,
+			*this | std::views::take(n),
+			key_view,
 			this->begin(),
 			std::bit_xor<std::byte>{}
 		);
 		return *this;
 	}
 
-	constexpr ByteArray  xor_decrypt(const ByteArray& key, xor_new_array_tag tag = xor_new_array) const
+	constexpr ByteArray  xor_decrypt(const ByteArray& key, xor_new_array_tag tag = {}) const
 	{ return xor_encrpyt(key, tag); }
+	constexpr ByteArray  xor_decrypt(const ByteArray& key, std::size_t n, xor_new_array_tag tag = {}) const
+	{ return xor_encrpyt(key, n, tag); }
 	constexpr ByteArray& xor_decrypt(const ByteArray& key, xor_inplace_tag tag)
 	{ return xor_encrpyt(key, tag); }
+	constexpr ByteArray& xor_decrypt(const ByteArray& key, std::size_t n, xor_inplace_tag tag)
+	{ return xor_encrpyt(key, n, tag); }
 
 	template<typename CharT>
 		requires (sizeof(CharT) == sizeof(std::byte))
