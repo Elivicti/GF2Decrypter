@@ -265,11 +265,11 @@ void DecrypterCli::execute()
 		return failures;
 	};
 
-	BS::thread_pool pool{ jobs * 2 };
+	BS::thread_pool pool{ std::max<std::size_t>(jobs, 0) };
 	auto future = pool.submit_blocks(
 		0, input_files.size(),
 		task_handler,
-		jobs
+		jobs * 2
 	);
 
 	std::size_t failed = 0;
