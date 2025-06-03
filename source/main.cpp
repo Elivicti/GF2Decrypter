@@ -1,7 +1,7 @@
 #include <CLI/CLI.hpp>
 #include <BS_thread_pool.hpp>
 
-#include "Util.hpp"
+#include "util.hpp"
 
 #include "Commands.hpp"
 
