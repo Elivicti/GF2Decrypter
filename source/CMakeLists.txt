@@ -14,6 +14,11 @@ execute_process(
 )
 
 add_executable(${EXE_NAME} ${SRCS})
+target_link_libraries(
+	${EXE_NAME}
+	PUBLIC
+		CLI11
+)
 
 
 target_compile_definitions(
