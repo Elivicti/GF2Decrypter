@@ -44,10 +44,7 @@ BundleDecrypter::BundleDecrypter(CLI::App* app, const char* argv0)
 		->default_val(suffix);
 	app->add_flag("-r,--recursive"s, recursive)
 		->description("Recursively search input directories"s);
-	app->add_flag("-q,--quiet"s, quiet)
-		->description("Supress console output"s);
-	app->add_flag("--dry-run"s, dry_run)
-		->description("Still read and decrpyt file, but won't write output"s);
+
 
 
 	std::string footer{ "Default Search Paths:\n"s };

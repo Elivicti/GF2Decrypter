@@ -1,5 +1,8 @@
 #include "Commands.hpp"
 
+using namespace std::string_literals;
+using namespace std::string_view_literals;
+
 Command::File::File(
 	const std::filesystem::path& src,
 	const std::filesystem::path& output,
@@ -27,6 +30,20 @@ Command::File::File(
 		throw std::invalid_argument{ "root is not a lexical parent of source" };
 
 	const_cast<std::filesystem::path&>(target) = std::move(output / tgt);
+}
+
+Command::Command(CLI::App* app, const char* argv0)
+	: app{ app }
+	, PROGRAM_DIR{ std::filesystem::path{ argv0 }.parent_path() }
+	, recursive{ false }, quiet{ false }, dry_run{ false }
+	, synced_cout{}
+{
+	app->add_flag("-q,--quiet"s, quiet)
+		->description("Supress console output"s);
+	app->add_flag("--dry-run"s, dry_run)
+		->description("Still read and decrypt file, but won't write output"s);
+
+	app->callback([this]() { this->operator()(); });
 }
 
 std::set<Command::File> Command::collect_files(

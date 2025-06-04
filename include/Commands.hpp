@@ -8,6 +8,9 @@
 class Command
 {
 public:
+	using PathArray = std::vector<std::filesystem::path>;
+	using PathSet   = std::set<std::filesystem::path>;
+
 	struct File
 	{
 		const std::filesystem::path source;
@@ -24,12 +27,8 @@ public:
 		friend class Command;
 	};
 public:
-	Command(CLI::App* app, const char* argv0)
-		: app{ app }
-		, PROGRAM_DIR{ std::filesystem::path{ argv0 }.parent_path() }
-		, recursive{ false }, quiet{ false }, dry_run{ false }
-		, synced_cout{}
-	{ app->callback([this]() { this->operator()(); }); }
+	Command(CLI::App* app, const char* argv0);
+	virtual ~Command() = default;
 
 	virtual void operator()() = 0;
 
@@ -79,8 +78,6 @@ private:
 class BundleDecrypter : public Command
 {
 public:
-	using PathArray = std::vector<std::filesystem::path>;
-	using PathSet   = std::set<std::filesystem::path>;
 
 	BundleDecrypter(CLI::App* app, const char* argv0);
 
