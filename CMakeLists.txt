@@ -6,10 +6,11 @@ if (POLICY CMP0141)
 	set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-project("GF2-Decrypter" VERSION 1.0 LANGUAGES CXX)
+project("GF2-Decrypter" VERSION 1.0 LANGUAGES CXX C)
 
 set(GIT_URL "git@github.com:" CACHE STRING "")
 
+option(ENABLE_TABLE_DECRYPTION    "enable table decryption functionality, this will introduce additional dependencies" ON)
 option(FORCE_FETCH_BS_THREAD_POLL "force fetching BS_thread_pool from git repository even if it's in the system path"  ON)
 
 include(FetchContent)
