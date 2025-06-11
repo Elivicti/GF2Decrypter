@@ -45,6 +45,10 @@ if (ENABLE_TABLE_DECRYPTION)
 	else()
 		message(STATUS "Found Nanopb ${Nanopb_VERSION}")
 	endif()
+
+	nanopb_generate_cpp(TARGET proto "proto/TextMap.proto")
+
+	target_link_libraries(${EXE_NAME} PRIVATE proto)
 	target_compile_definitions(
 		${EXE_NAME}
 		PRIVATE

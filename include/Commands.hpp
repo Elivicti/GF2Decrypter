@@ -108,3 +108,33 @@ private:
 	std::filesystem::path get_default_path();
 };
 
+
+struct formatted_writer;
+
+class TableDecrypter : public Command
+{
+public:
+	TableDecrypter(CLI::App* app, const char* argv0);
+	~TableDecrypter();
+
+	virtual void operator()() override;
+
+private:
+	PathArray input;
+	std::filesystem::path output_dir;
+	bool ensure_ascii;
+	std::string indent;
+	std::variant<int, char> indent_;
+	std::string format;
+	bool sort;
+
+	std::unique_ptr<formatted_writer> output_writer;
+
+	static const std::vector<std::string> format_choices;
+
+	void execute();
+
+	void decode_file(const File& f);
+};
+
+
