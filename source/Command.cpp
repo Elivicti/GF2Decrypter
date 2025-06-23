@@ -32,9 +32,17 @@ Command::File::File(
 	const_cast<std::filesystem::path&>(target) = std::move(output / tgt);
 }
 
+static std::filesystem::path get_program_dir(const char* argv0)
+{
+	std::filesystem::path program{ argv0 };
+	if (std::filesystem::is_symlink(program))
+		program = std::filesystem::read_symlink(program);
+	return program.parent_path();
+}
+
 Command::Command(CLI::App* app, const char* argv0)
 	: app{ app }
-	, PROGRAM_DIR{ std::filesystem::path{ argv0 }.parent_path() }
+	, PROGRAM_DIR{ get_program_dir(argv0) }
 	, recursive{ false }, quiet{ false }, dry_run{ false }
 	, synced_cout{}
 {
