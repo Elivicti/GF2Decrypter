@@ -35,7 +35,7 @@ if (ENABLE_TABLE_DECRYPTION)
 		message(STATUS "Nanopb not found, fetching from git repository")
 		FetchContent_Declare(
 			nanopb
-			GIT_REPOSITORY git@github.com:nanopb/nanopb.git
+			GIT_REPOSITORY ${GIT_URL}nanopb/nanopb.git
 			GIT_TAG        0.4.9.1
 		)
 		FetchContent_MakeAvailable(nanopb)
