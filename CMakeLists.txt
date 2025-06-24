@@ -6,7 +6,7 @@ if (POLICY CMP0141)
 	set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-project("GF2-Decrypter" VERSION 1.0 LANGUAGES CXX C)
+project("GF2-Decrypter" VERSION 2.0 LANGUAGES CXX C)
 
 set(GIT_URL "git@github.com:" CACHE STRING "")
 
