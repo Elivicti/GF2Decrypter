@@ -24,6 +24,11 @@
 				"CMAKE_C_COMPILER": "cl.exe",
 				"CMAKE_CXX_COMPILER": "cl.exe",
 				"CMAKE_LINKER": "link.exe"
+			},
+			"environment": {
+				"MSVC_FLAGS": "/source-charset:utf-8",
+				"CXXFLAGS": "$env{MSVC_FLAGS}",
+				"CFLAGS": "$env{MSVC_FLAGS}"
 			}
 		},
 		{
@@ -46,8 +51,8 @@
 		{
 			"name": "sys-windows",
 			"hidden": true,
+			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
 			"cacheVariables": {
-				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
 			},
 			"condition": {
 				"type": "equals",
