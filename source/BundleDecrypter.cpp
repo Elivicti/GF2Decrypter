@@ -78,7 +78,7 @@ std::filesystem::path BundleDecrypter::get_default_path()
 void BundleDecrypter::resolve_input()
 {
 	namespace fs = std::filesystem;
-	
+
 	if (input.empty())
 		input.emplace_back(get_default_path());
 	std::unordered_set<fs::path> seen;
@@ -132,7 +132,7 @@ void BundleDecrypter::execute()
 
 	if (!dry_run && !std::filesystem::exists(output))
 		std::filesystem::create_directories(output);
-	
+
 	print("Collecting files...");
 	std::set<File> file_set = collect_files(input, output);
 	std::vector<File> input_files;
