@@ -425,6 +425,7 @@ struct IndentValidator : public CLI::Validator
 
 TableDecrypter::TableDecrypter(CLI::App* app, const char* argv0)
 	: Command{ app, argv0 }
+	, ensure_ascii{ false }, sort{ false }
 {
 	app->add_option("input"s, input)
 		->description("Input files"s)
@@ -447,7 +448,6 @@ TableDecrypter::TableDecrypter(CLI::App* app, const char* argv0)
 
 
 	app->add_flag("-s,--sort"s, sort)
-		->default_val(false)
 		->description("Sort content by id"s);
 
 	app->add_option("-F,--format", format)
