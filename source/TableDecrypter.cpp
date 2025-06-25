@@ -415,7 +415,7 @@ struct IndentValidator : public CLI::Validator
 	static char_fill parse_input(const std::string& input)
 	{
 		char_fill ret{ ' ', 1 };
-		if (input.size() == 0 && input[0] == 't')
+		if (input.size() == 1 && input[0] == 't')
 			ret.character = '\t';
 		else
 			ret.width = std::stoi(input);
@@ -441,6 +441,7 @@ TableDecrypter::TableDecrypter(CLI::App* app, const char* argv0)
 		->description("Ensure ascii in output files");
 
 	app->add_option("-i,--indent"s, indent)
+		->default_val("2")
 		->check(IndentValidator{})
 		->description("Set indentation size, it is ignored if output format is not json"s);
 
