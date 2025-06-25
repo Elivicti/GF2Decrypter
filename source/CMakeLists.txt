@@ -4,15 +4,6 @@ file(GLOB SRCS CONFIGURE_DEPENDS "*.cpp")
 
 set(EXE_NAME "${PROJECT_NAME}")
 
-execute_process(
-	COMMAND git describe --match=NeVeRmAtCh --always --abbrev=40 --dirty=*
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-		RESULT_VARIABLE GIT_RESULT
-		OUTPUT_VARIABLE GIT_HASH
-		ERROR_QUIET
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
 add_executable(${EXE_NAME} ${SRCS})
 target_link_libraries(
 	${EXE_NAME}
@@ -20,11 +11,12 @@ target_link_libraries(
 		CLI11
 )
 
-
+target_include_directories(
+	${EXE_NAME} PRIVATE ${GIT_HASH_HEADER_DIR}
+)
 target_compile_definitions(
 	${EXE_NAME}
 	PRIVATE
-		GIT_HASH="${GIT_HASH}"
 		EXE_NAME="${EXE_NAME}"
 		PROJECT_VERSION="${PROJECT_VERSION}"
 )
@@ -55,3 +47,5 @@ if (ENABLE_TABLE_DECRYPTION)
 			ENABLE_TABLE_DECRYPTION=1
 	)
 endif()
+
+add_dependencies(${EXE_NAME} UpdateGitHash)

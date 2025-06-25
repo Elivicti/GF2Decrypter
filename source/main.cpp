@@ -2,7 +2,7 @@
 #include <BS_thread_pool.hpp>
 
 #include "util.hpp"
-
+#include "GitHash.h"
 #include "Commands.hpp"
 
 int main(int argc, char* argv[])

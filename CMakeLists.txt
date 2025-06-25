@@ -53,5 +53,19 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(GIT_HASH_HEADER "GitHash.h")
+set(GIT_HASH_HEADER_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+add_custom_target(
+	UpdateGitHash ALL
+	COMMAND
+		${CMAKE_COMMAND}
+			-DOUTPUT_DIR=${GIT_HASH_HEADER_DIR}
+			-DSOURCE_FILE=include/${GIT_HASH_HEADER}.in
+			-DHEADER_FILE=${GIT_HASH_HEADER}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GetCommitHash.cmake
+	COMMENT "Updating Git Hash"
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
 include_directories(include)
 add_subdirectory(source)

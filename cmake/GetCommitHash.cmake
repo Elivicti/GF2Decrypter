@@ -1,0 +1,20 @@
+execute_process(
+	COMMAND git describe --match=NeVeRmAtCh --always --abbrev=40 --dirty=*
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		RESULT_VARIABLE GIT_RESULT
+		OUTPUT_VARIABLE GIT_HASH
+		ERROR_QUIET
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+if(NOT GIT_HASH)
+	set(GIT_HASH "Unknown")
+endif()
+
+file(MAKE_DIRECTORY "${OUTPUT_DIR}")
+
+configure_file(
+	${SOURCE_FILE}
+	${OUTPUT_DIR}/${HEADER_FILE}
+	@ONLY
+)
