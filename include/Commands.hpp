@@ -96,6 +96,7 @@ private:
 	std::filesystem::path output;
 	std::size_t jobs;
 	std::string suffix;
+	std::size_t buffer_size;
 
 
 	const std::filesystem::path SEARCH_PATHS[3];

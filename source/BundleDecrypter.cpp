@@ -45,7 +45,9 @@ BundleDecrypter::BundleDecrypter(CLI::App* app, const char* argv0)
 	app->add_flag("-r,--recursive"s, recursive)
 		->description("Recursively search input directories"s);
 
-
+	app->add_option("-b,--buffer-size"s, buffer_size)
+		->default_val(2048)
+		->description("Buffer size used when writing output files, unit: KiB"s);
 
 	std::string footer{ "Default Search Paths:\n"s };
 	for (auto& s : SEARCH_PATHS)
@@ -110,14 +112,26 @@ void BundleDecrypter::decrypt_file(const File& f)
 
 	decrypt_bytes(data);
 
-	if (!dry_run)
+	do
 	{
+		if (dry_run) break;
+
 		std::filesystem::create_directories(f.target.parent_path());
 		std::ofstream ofs{ f.target, std::ios::binary | std::ios::out };
 		ofs.write((char*)data.data(), data.size());
-		if (file_size > read_size)
+
+		if (file_size >= read_size) break;
+
+		if (buffer_size == 0)
 			ofs << ifs.rdbuf();
-	}
+		else
+		{
+			std::vector<char> buf(buffer_size);
+			while (ifs.read(buf.data(), buffer_size))
+				ofs.write(buf.data(), ifs.gcount());
+			ofs.write(buf.data(), ifs.gcount());
+		};
+	} while (false);
 
 	print("{} -> {}\n", f.source.filename().string(), f.target.generic_string());
 }
@@ -132,6 +146,8 @@ void BundleDecrypter::execute()
 
 	if (!dry_run && !std::filesystem::exists(output))
 		std::filesystem::create_directories(output);
+
+	buffer_size *= 1024; // convert unit to bytes
 
 	print("Collecting files...");
 	std::set<File> file_set = collect_files(input, output);
