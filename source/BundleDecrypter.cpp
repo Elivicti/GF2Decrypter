@@ -120,7 +120,7 @@ void BundleDecrypter::decrypt_file(const File& f)
 		std::ofstream ofs{ f.target, std::ios::binary | std::ios::out };
 		ofs.write((char*)data.data(), data.size());
 
-		if (file_size >= read_size) break;
+		if (file_size <= read_size) break;
 
 		if (buffer_size == 0)
 			ofs << ifs.rdbuf();
