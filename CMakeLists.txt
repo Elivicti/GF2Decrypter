@@ -67,5 +67,55 @@ add_custom_target(
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
-include_directories(include)
-add_subdirectory(source)
+file(GLOB SRCS CONFIGURE_DEPENDS "source/*.cpp")
+
+add_executable(${PROJECT_NAME} ${SRCS})
+target_link_libraries(${PROJECT_NAME} PRIVATE CLI11)
+
+target_include_directories(
+	${PROJECT_NAME}
+	PRIVATE
+		include
+		${GIT_HASH_HEADER_DIR}
+)
+target_compile_definitions(
+	${PROJECT_NAME}
+	PRIVATE
+		EXE_NAME="${PROJECT_NAME}"
+		PROJECT_NAME="${PROJECT_NAME}"
+		PROJECT_VERSION="${PROJECT_VERSION}"
+)
+target_compile_options(
+	${PROJECT_NAME}
+	PRIVATE
+		$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>
+)
+
+if (ENABLE_TABLE_DECRYPTION)
+	find_package(Nanopb 0.4.9.1 QUIET)
+	if (NOT Nanopb_FOUND)
+		message(STATUS "Nanopb not found, fetching from git repository")
+		FetchContent_Declare(
+			nanopb
+			GIT_REPOSITORY ${GIT_URL}nanopb/nanopb.git
+			GIT_TAG        0.4.9.1
+		)
+		FetchContent_MakeAvailable(nanopb)
+		list(APPEND CMAKE_MODULE_PATH "${nanopb_SOURCE_DIR}/extra/")
+		find_package(Nanopb REQUIRED)
+		message(STATUS "Using Nanopb 0.4.9.1")
+	else()
+		message(STATUS "Found Nanopb ${Nanopb_VERSION}")
+	endif()
+
+	nanopb_generate_cpp(TARGET proto "source/proto/TextMap.proto")
+
+	target_link_libraries(${PROJECT_NAME} PRIVATE proto)
+	target_compile_definitions(
+		${PROJECT_NAME}
+		PRIVATE
+			ENABLE_TABLE_DECRYPTION=1
+	)
+endif()
+
+add_dependencies(${PROJECT_NAME} UpdateGitHash)
