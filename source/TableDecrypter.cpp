@@ -14,6 +14,7 @@ struct Text
 
 bool decode_Content(pb_istream_t* stream, const pb_field_t* field, void** arg)
 {
+	UNUSED(field);
 	std::string* content = (std::string*)*arg;
 	content->resize(stream->bytes_left);
 	return pb_read(stream, (uint8_t*)content->data(), content->size());
@@ -21,6 +22,7 @@ bool decode_Content(pb_istream_t* stream, const pb_field_t* field, void** arg)
 
 bool decode_TextMap(pb_istream_t* stream, const pb_field_t* field, void** arg)
 {
+	UNUSED(field);
 	std::vector<Text>* map = (std::vector<Text>*)*arg;
 	std::string content;
 	TextMap data = TextMap_init_zero;
@@ -376,8 +378,6 @@ struct json_kv_writer : public json_writer
 #else
 struct formatted_writer{};
 #endif
-
-#include <charconv>
 
 using namespace std::string_literals;
 using namespace std::string_view_literals;

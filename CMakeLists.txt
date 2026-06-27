@@ -88,7 +88,8 @@ target_compile_definitions(
 target_compile_options(
 	${PROJECT_NAME}
 	PRIVATE
-		$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>
+		$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8 /W4>
+		$<$<CXX_COMPILER_ID:CLang,GNU>:-Wall -Wextra>
 )
 
 if (ENABLE_TABLE_DECRYPTION)

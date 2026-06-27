@@ -19,3 +19,4 @@ void print(std::format_string<Args...> fmt, Args&&... args)
 
 }
 
+#define UNUSED(x) ((void)x)

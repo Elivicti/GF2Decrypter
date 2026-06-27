@@ -54,7 +54,7 @@ protected:
 
 	mutable BS::synced_stream synced_cout;
 
-	virtual bool match_file(const std::filesystem::path& file) const { return true; }
+	virtual bool match_file(const std::filesystem::path&) const { return true; }
 private:
 	template<typename Iter>
 	void traverse_directory(

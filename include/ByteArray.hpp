@@ -5,6 +5,9 @@
 #include <fstream>
 #include <vector>
 #include <ranges>
+#include <bit>
+
+#include "util.hpp"
 
 class ByteArray : public std::vector<std::byte>
 {
@@ -35,6 +38,7 @@ public:
 	{ return xor_encrpyt(key, this->size(), tag); }
 	constexpr ByteArray  xor_encrpyt(const ByteArray& key, std::size_t n, xor_new_array_tag tag = {}) const
 	{
+		UNUSED(tag);
 		ByteArray ret = *this;
 		ret.xor_encrpyt(key, n, xor_inplace);
 		return ret;
@@ -245,7 +249,7 @@ constexpr ByteArray operator""_hex(const char* str, std::size_t len)
 		throw std::invalid_argument("invalid hex string");
 
 	constexpr auto hex_char_to_value = [](char c) {
-		c = std::tolower(static_cast<unsigned char>(c));
+		c = (char)std::tolower((unsigned char)c);
 		if (c >= '0' && c <= '9')
 			return (std::byte)(c - '0');
 		else if (c >= 'a' && c <= 'f')
